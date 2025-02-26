@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import * as path from "path";
 import * as fs from "fs/promises";
+import * as os from "node:os";
 import notifier from "node-notifier";
 
 const execAsync = promisify(exec);
@@ -205,18 +206,78 @@ server.tool(
 // Tool to run Node with the --eval flag
 server.tool(
   "run-node-eval",
-  "Execute JavaScript code directly with Node.js eval",
+  "Execute JavaScript code directly with Node.js eval. Optionally specify a directory to execute in.",
   {
     code: z.string().describe("JavaScript code to execute"),
+    evalDirectory: z.string().optional().describe("Directory to execute the code in (must be an allowed directory)"),
   },
-  async ({ code }, extra) => {
+  async ({ code, evalDirectory }, extra) => {
     try {
+      // Determine execution directory - use os.tmpdir() for the default
+      const tmpDir = os.tmpdir();
+      let executionDir = tmpDir;
+      
+      if (evalDirectory) {
+        // Resolve the absolute path
+        const absPath = path.resolve(evalDirectory);
+        
+        // Check if directory exists
+        try {
+          const stats = await fs.stat(absPath);
+          if (!stats.isDirectory()) {
+            return {
+              isError: true,
+              content: [{ 
+                type: "text" as const, 
+                text: `Error: '${absPath}' is not a directory` 
+              }]
+            };
+          }
+        } catch (error) {
+          return {
+            isError: true,
+            content: [{ 
+              type: "text" as const, 
+              text: `Error: Directory '${absPath}' does not exist` 
+            }]
+          };
+        }
+        
+        // Get the allowed directories from the environment variable
+        // The temporary directory is always allowed
+        let allowedDirs = process.env.EVAL_DIRECTORIES
+          ? process.env.EVAL_DIRECTORIES.split(':')
+          : [];
+        
+        // Always add the temporary directory to allowed directories
+        allowedDirs.push(tmpDir);
+        
+        const isAllowed = allowedDirs.some(dir => {
+          // Check if absPath is within an allowed directory
+          return absPath === dir || absPath.startsWith(dir + '/');
+        });
+        
+        if (!isAllowed) {
+          return {
+            isError: true,
+            content: [{ 
+              type: "text" as const, 
+              text: `Error: Directory '${absPath}' is not in the list of allowed directories` 
+            }]
+          };
+        }
+        
+        executionDir = absPath;
+      }
+      
       // Format command for permission request
       // We're showing a simplified version in the permission dialog
       const displayCode = code.length > 50 ? code.substring(0, 47) + "..." : code;
       
-      // Ask for permission
-      const permitted = await askPermission(`node --eval "${displayCode}"`);
+      // Ask for permission - include the execution directory in the message
+      const permissionMessage = `node --eval "${displayCode}" (in ${executionDir})`;
+      
+      const permitted = await askPermission(permissionMessage);
       
       if (!permitted) {
         return {
@@ -231,7 +292,7 @@ server.tool(
       // Execute the code directly using --eval
       // Escaping the code properly for the shell command
       const escapedCode = code.replace(/"/g, '\\"');
-      const { stdout, stderr } = await execAsync(`node --eval "${escapedCode}"`);
+      const { stdout, stderr } = await execAsync(`node --eval "${escapedCode}"`, { cwd: executionDir });
       
       return {
         content: [
