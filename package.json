@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js"
+    "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js",
+    "test-error": "node test-error.js"
   },
   "repository": {
     "type": "git",

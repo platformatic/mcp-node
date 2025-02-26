@@ -377,13 +377,24 @@ server.tool(
         ]
       };
     } catch (error) {
+      // Extract stdout and stderr from the error
+      const execError = error as any;
+      const stdout = execError.stdout || '';
+      const stderr = execError.stderr || '';
       const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Return a successful response but include both stdout, stderr and error information
       return {
-        isError: true,
-        content: [{ 
-          type: "text" as const, 
-          text: `Error executing npm script: ${errorMessage}` 
-        }]
+        content: [
+          { 
+            type: "text" as const, 
+            text: stdout || "Script execution returned with error code" 
+          },
+          { 
+            type: "text" as const, 
+            text: `Standard Error: ${stderr}\nError: ${errorMessage}` 
+          }
+        ]
       };
     }
   }
