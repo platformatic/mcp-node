@@ -20,6 +20,12 @@ const server = new McpServer({
  * Helper function to ask for permission using node-notifier
  */
 async function askPermission(action: string): Promise<boolean> {
+  // Skip notification if DISABLE_NOTIFICATIONS is set
+  if (process.env.DISABLE_NOTIFICATIONS === 'true') {
+    console.log(`Auto-allowing action (notifications disabled): ${action}`);
+    return true;
+  }
+  
   return new Promise((resolve) => {
     notifier.notify({
       title: 'NodeRunner Permission Request',

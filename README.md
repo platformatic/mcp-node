@@ -1,6 +1,6 @@
 # Node Runner MCP Server
 
-An MCP server that allows you to run Node.js scripts and npm commands, with permission prompts via node-notifier.
+An MCP server that allows you to run Node.js scripts and npm commands, with permission prompts via [`node-notifier`](https://www.npmjs.com/package/node-notifier).
 
 ## Features
 
@@ -8,7 +8,7 @@ An MCP server that allows you to run Node.js scripts and npm commands, with perm
 - Execute npm scripts from package.json files
 - Run JavaScript code directly with Node's eval
 - View available npm scripts in package.json files
-- Permission prompts before any execution
+- Permission prompts before any execution (can be disabled)
 
 ## Setup
 
@@ -36,8 +36,12 @@ An MCP server that allows you to run Node.js scripts and npm commands, with perm
 {
   "mcpServers": {
     "node-runner": {
-      "command": "node",
-      "args": ["/absolute/path/to/this/project/build/index.js"]
+      "command": "npx",
+      "args": ["-y", "mcp-node"],
+      "env": {
+        "DISABLE_NOTIFICATIONS": "true",  // Optional: disable permission prompts
+        "EVAL_DIRECTORIES": "/path/to/safe/dir1:/path/to/safe/dir2"  // Optional: additional allowed eval directories
+      }
     }
   }
 }
@@ -45,6 +49,7 @@ An MCP server that allows you to run Node.js scripts and npm commands, with perm
 
 3. Restart Claude for Desktop
 4. You can now ask Claude to run Node.js scripts or npm commands
+5. (Optional) Use the `env` configuration to disable notification prompts as shown above
 
 ## Available Tools
 
@@ -93,3 +98,31 @@ Example prompt: "Show me the available npm scripts in this project"
 - The server will always prompt for permission before executing any command
 - Scripts run with the same permissions as the MCP server process
 - Be cautious when running scripts from untrusted sources
+
+## Environment Variables
+
+### DISABLE_NOTIFICATIONS
+
+Set `DISABLE_NOTIFICATIONS=true` to automatically approve all permission requests without showing notification prompts:
+
+```bash
+# Run with notifications disabled
+DISABLE_NOTIFICATIONS=true npm run dev
+```
+
+This is useful for automation scenarios or when you don't want to be prompted for each action.
+
+### EVAL_DIRECTORIES
+
+Specify a colon-separated list of directories where JavaScript code can be evaluated using the `run-node-eval` tool:
+
+```bash
+# Allow code evaluation in specific directories
+EVAL_DIRECTORIES=/path/to/dir1:/path/to/dir2 npm run dev
+```
+
+By default, only the system temporary directory is allowed. This environment variable lets you add additional safe directories.
+
+## License
+
+MIT
