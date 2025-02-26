@@ -218,8 +218,30 @@ server.tool(
       let executionDir = tmpDir;
       
       if (evalDirectory) {
+        // Prevent directory traversal attempts by checking for '..' segments
+        if (evalDirectory.includes('..')) {
+          return {
+            isError: true,
+            content: [{ 
+              type: "text" as const, 
+              text: "Error: Directory traversal is not allowed. Path cannot contain '..'" 
+            }]
+          };
+        }
+
         // Resolve the absolute path
         const absPath = path.resolve(evalDirectory);
+        
+        // Add a second check on the normalized path to catch any normalized traversal
+        if (path.normalize(absPath).includes('..')) {
+          return {
+            isError: true,
+            content: [{ 
+              type: "text" as const, 
+              text: "Error: Directory traversal is not allowed in the resolved path" 
+            }]
+          };
+        }
         
         // Check if directory exists
         try {
