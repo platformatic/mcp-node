@@ -228,34 +228,23 @@ server.tool(
         };
       }
       
-      // Create a temporary file with the code
-      const tempFilePath = path.join(process.cwd(), `temp-${Date.now()}.js`);
-      await fs.writeFile(tempFilePath, code);
+      // Execute the code directly using --eval
+      // Escaping the code properly for the shell command
+      const escapedCode = code.replace(/"/g, '\\"');
+      const { stdout, stderr } = await execAsync(`node --eval "${escapedCode}"`);
       
-      try {
-        // Execute the code
-        const { stdout, stderr } = await execAsync(`node ${tempFilePath}`);
-        
-        return {
-          content: [
-            { 
-              type: "text" as const, 
-              text: stdout || "Code executed successfully with no output" 
-            },
-            ...(stderr ? [{ 
-              type: "text" as const, 
-              text: `Standard Error: ${stderr}` 
-            }] : [])
-          ]
-        };
-      } finally {
-        // Clean up the temporary file
-        try {
-          await fs.unlink(tempFilePath);
-        } catch (error) {
-          console.error("Error removing temporary file:", error);
-        }
-      }
+      return {
+        content: [
+          { 
+            type: "text" as const, 
+            text: stdout || "Code executed successfully with no output" 
+          },
+          ...(stderr ? [{ 
+            type: "text" as const, 
+            text: `Standard Error: ${stderr}` 
+          }] : [])
+        ]
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
