@@ -209,6 +209,48 @@ server.tool(
   }
 );
 
+// Tool to get the Node.js version
+server.tool(
+  "get-node-version",
+  "Get the version of Node.js the scripts will be executed with",
+  {},
+  async () => {
+    try {
+      // Get Node.js version info
+      const { stdout } = await execAsync('node --version');
+      const nodeVersion = stdout.trim();
+      
+      // Get npm version info
+      const { stdout: npmStdout } = await execAsync('npm --version');
+      const npmVersion = npmStdout.trim();
+      
+      // Get the path to Node.js executable
+      const { stdout: nodePath } = await execAsync('which node');
+      const nodeExecutablePath = nodePath.trim();
+      
+      // Get platform and architecture
+      const platform = os.platform();
+      const arch = os.arch();
+      
+      return {
+        content: [{ 
+          type: "text" as const, 
+          text: `Node.js: ${nodeVersion}\nNPM: ${npmVersion}\nNode Path: ${nodeExecutablePath}\nPlatform: ${platform}\nArchitecture: ${arch}` 
+        }]
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        isError: true,
+        content: [{ 
+          type: "text" as const, 
+          text: `Error getting Node.js version info: ${errorMessage}` 
+        }]
+      };
+    }
+  }
+);
+
 // Tool to run Node with the --eval flag
 server.tool(
   "run-node-eval",

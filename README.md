@@ -1,6 +1,12 @@
 # Node Runner MCP Server
 
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
+
 An MCP server that allows you to run Node.js scripts and npm commands, with permission prompts via [`node-notifier`](https://www.npmjs.com/package/node-notifier).
+
+## Requirements
+
+- Node.js >= 22.0.0
 
 ## Features
 
@@ -84,6 +90,14 @@ Parameters:
 Example prompt: "Run this JavaScript code: console.log('Hello world');"
 
 ## Resources
+
+### node-version
+
+Displays information about the Node.js environment running the MCP server.
+
+URI template: `node-version://info`
+
+Example prompt: "What version of Node.js is being used to run the scripts?"
 
 ### npm-scripts
 
