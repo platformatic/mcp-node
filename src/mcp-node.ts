@@ -22,9 +22,11 @@ async function askPermission(action: string): Promise<boolean> {
   return new Promise((resolve) => {
     notifier.notify({
       title: 'NodeRunner Permission Request',
-      message: `Allow execution of: ${action}?`,
+      message: `${action}`,
       wait: true,
-      actions: ['Allow', 'Deny']
+      timeout: 60,
+      actions: 'Allow',
+      closeLabel: 'Deny'
     }, (err, response, metadata) => {
       if (err) {
         console.error('Error showing notification:', err);
@@ -46,7 +48,7 @@ server.tool(
     scriptPath: z.string().describe("Path to the Node.js script to execute"),
     args: z.array(z.string()).optional().describe("Optional arguments to pass to the script")
   },
-  async ({ scriptPath, args = [] }) => {
+  async ({ scriptPath, args = [] }, extra) => {
     try {
       // Resolve the absolute path
       const absPath = path.resolve(scriptPath);
@@ -58,7 +60,7 @@ server.tool(
         return {
           isError: true,
           content: [{ 
-            type: "text", 
+            type: "text" as const, 
             text: `Error: Script not found at ${absPath}` 
           }]
         };
@@ -67,17 +69,22 @@ server.tool(
       // Format command for permission request
       const command = `node ${absPath} ${args.join(' ')}`;
       
+
       // Ask for permission
-      const permitted = await askPermission(command);
-      
-      if (!permitted) {
-        return {
-          isError: true,
-          content: [{ 
-            type: "text", 
-            text: "Permission denied by user" 
-          }]
-        };
+      let permitted;
+      let tries = 0;
+
+      while (!permitted) {
+        if (tries++ > 5) {
+          return {
+            isError: true,
+            content: [{ 
+              type: "text" as const, 
+              text: "Permission denied by user" 
+            }]
+          };
+        }
+        permitted = await askPermission(command);
       }
       
       // Execute the script
@@ -86,11 +93,11 @@ server.tool(
       return {
         content: [
           { 
-            type: "text", 
+            type: "text" as const, 
             text: stdout || "Script executed successfully with no output" 
           },
           ...(stderr ? [{ 
-            type: "text", 
+            type: "text" as const, 
             text: `Standard Error: ${stderr}` 
           }] : [])
         ]
@@ -100,7 +107,7 @@ server.tool(
       return {
         isError: true,
         content: [{ 
-          type: "text", 
+          type: "text" as const, 
           text: `Error executing script: ${errorMessage}` 
         }]
       };
@@ -117,7 +124,7 @@ server.tool(
     scriptName: z.string().describe("Name of the script to run"),
     args: z.array(z.string()).optional().describe("Optional arguments to pass to the script")
   },
-  async ({ packageDir, scriptName, args = [] }) => {
+  async ({ packageDir, scriptName, args = [] }, extra) => {
     try {
       // Resolve the absolute path
       const absPath = path.resolve(packageDir);
@@ -130,7 +137,7 @@ server.tool(
         return {
           isError: true,
           content: [{ 
-            type: "text", 
+            type: "text" as const, 
             text: `Error: package.json not found at ${packageJsonPath}` 
           }]
         };
@@ -144,7 +151,7 @@ server.tool(
         return {
           isError: true,
           content: [{ 
-            type: "text", 
+            type: "text" as const, 
             text: `Error: Script '${scriptName}' not found in package.json` 
           }]
         };
@@ -161,7 +168,7 @@ server.tool(
         return {
           isError: true,
           content: [{ 
-            type: "text", 
+            type: "text" as const, 
             text: "Permission denied by user" 
           }]
         };
@@ -173,11 +180,11 @@ server.tool(
       return {
         content: [
           { 
-            type: "text", 
+            type: "text" as const, 
             text: stdout || "Script executed successfully with no output" 
           },
           ...(stderr ? [{ 
-            type: "text", 
+            type: "text" as const, 
             text: `Standard Error: ${stderr}` 
           }] : [])
         ]
@@ -187,7 +194,7 @@ server.tool(
       return {
         isError: true,
         content: [{ 
-          type: "text", 
+          type: "text" as const, 
           text: `Error executing npm script: ${errorMessage}` 
         }]
       };
@@ -202,7 +209,7 @@ server.tool(
   {
     code: z.string().describe("JavaScript code to execute"),
   },
-  async ({ code }) => {
+  async ({ code }, extra) => {
     try {
       // Format command for permission request
       // We're showing a simplified version in the permission dialog
@@ -215,7 +222,7 @@ server.tool(
         return {
           isError: true,
           content: [{ 
-            type: "text", 
+            type: "text" as const, 
             text: "Permission denied by user" 
           }]
         };
@@ -232,11 +239,11 @@ server.tool(
         return {
           content: [
             { 
-              type: "text", 
+              type: "text" as const, 
               text: stdout || "Code executed successfully with no output" 
             },
             ...(stderr ? [{ 
-              type: "text", 
+              type: "text" as const, 
               text: `Standard Error: ${stderr}` 
             }] : [])
           ]
@@ -254,7 +261,7 @@ server.tool(
       return {
         isError: true,
         content: [{ 
-          type: "text", 
+          type: "text" as const, 
           text: `Error executing code: ${errorMessage}` 
         }]
       };
@@ -266,8 +273,13 @@ server.tool(
 server.resource(
   "npm-scripts",
   "npm-scripts://{directory}",
-  async (uri, { directory }) => {
+  async (uri) => {
     try {
+      // Extract directory from the URI
+      const uriPath = uri.pathname;
+      const matches = /^\/([^/]+)/.exec(uriPath);
+      const directory = matches ? matches[1] : '.';
+      
       // Resolve the absolute path
       const absPath = path.resolve(directory);
       const packageJsonPath = path.join(absPath, "package.json");
@@ -316,11 +328,16 @@ server.resource(
   }
 );
 
-try {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Node Runner MCP Server running");
-} catch (error) {
-  console.error("Error starting server:", error);
-  process.exit(1);
+// Start the server
+async function main() {
+  try {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("Node Runner MCP Server running");
+  } catch (error) {
+    console.error("Error starting server:", error);
+    process.exit(1);
+  }
 }
+
+main();

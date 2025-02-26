@@ -5,7 +5,8 @@
   "main": "dist/mcp-node.js",
   "type": "module",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js"
   },
   "repository": {
     "type": "git",
