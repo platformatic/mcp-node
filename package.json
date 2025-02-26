@@ -1,0 +1,40 @@
+{
+  "name": "mcp-node",
+  "version": "1.0.0",
+  "description": "A basic Model Context Protocol implementation for Node.js",
+  "main": "dist/mcp-node.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcollina/mcp-node.git"
+  },
+  "author": "Matteo Collina <hello@matteocollina.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mcollina/mcp-node/issues"
+  },
+  "homepage": "https://github.com/mcollina/mcp-node#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "node-notifier": "^10.0.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/node-notifier": "^8.0.5",
+    "typescript": "^5.7.3"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "nodejs",
+    "javascript-runtime"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
