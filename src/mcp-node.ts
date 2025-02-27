@@ -45,7 +45,7 @@ async function askPermission(action: string): Promise<boolean> {
       }
       
       const buttonPressed = metadata?.activationValue || response;
-      resolve(buttonPressed === 'Allow');
+      resolve(buttonPressed !== 'Deny');
     });
   });
 }
