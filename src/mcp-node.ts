@@ -223,9 +223,10 @@ server.tool(
   "Execute a Node.js script file locally",
   {
     scriptPath: z.string().describe("Path to the Node.js script to execute"),
+    nodeArgs: z.array(z.string()).optional().describe("Optional arguments to pass to the Node.js executable itself"),
     args: z.array(z.string()).optional().describe("Optional arguments to pass to the script")
   },
-  async ({ scriptPath, args = [] }, extra) => {
+  async ({ scriptPath, nodeArgs = [], args = [] }, extra) => {
     try {
       // Resolve the absolute path
       const absPath = path.resolve(scriptPath);
@@ -243,9 +244,11 @@ server.tool(
         };
       }
       
+
       // Format command for permission request
-      const command = `node ${absPath} ${args.join(' ')}`;
-      
+      const nodeArgsString = nodeArgs.length > 0 ? nodeArgs.join(' ') + ' ' : '';
+      const argsString = args.length > 0 ? ' ' + args.join(' ') : '';
+      const command = `node ${nodeArgsString}${absPath}${argsString}`;
 
       // Ask for permission
       let permitted;
