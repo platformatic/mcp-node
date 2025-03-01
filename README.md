@@ -10,9 +10,9 @@ An MCP server that allows you to run Node.js scripts and npm commands, with perm
 
 ## Features
 
-- Run Node.js scripts with arguments
-- Execute npm scripts from package.json files
-- Run JavaScript code directly with Node's eval
+- Run Node.js scripts with arguments and standard input
+- Execute npm scripts from package.json files with standard input
+- Run JavaScript code directly with Node's eval and provide standard input
 - View available npm scripts in package.json files
 - Permission prompts before any execution (can be disabled)
 
@@ -65,7 +65,9 @@ Executes a Node.js script file.
 
 Parameters:
 - `scriptPath`: Path to the Node.js script to execute
+- `nodeArgs`: (Optional) Arguments to pass to the Node.js executable itself
 - `args`: (Optional) Array of arguments to pass to the script
+- `stdin`: (Optional) Text to provide as standard input to the script
 
 Example prompt: "Run the test.js script with arguments 'hello' and 'world'"
 
@@ -77,6 +79,7 @@ Parameters:
 - `packageDir`: Directory containing the package.json
 - `scriptName`: Name of the script to run
 - `args`: (Optional) Array of arguments to pass to the script
+- `stdin`: (Optional) Text to provide as standard input to the script
 
 Example prompt: "Run the 'start' script from the package.json in the current directory"
 
@@ -86,8 +89,61 @@ Executes JavaScript code directly.
 
 Parameters:
 - `code`: JavaScript code to execute
+- `evalDirectory`: (Optional) Directory to execute the code in
+- `stdin`: (Optional) Text to provide as standard input to the code
 
 Example prompt: "Run this JavaScript code: console.log('Hello world');"
+
+## Examples of Using Standard Input
+
+### Passing Input to a Node Script
+
+```javascript
+// Example script: process-data.js
+process.stdin.on('data', (data) => {
+  const input = data.toString().trim();
+  console.log(`Received: ${input}`);
+  // Process the input...
+});
+```
+
+You can execute this with standard input:
+
+```
+run-node-script({
+  scriptPath: "./process-data.js",
+  stdin: "This is input data"
+});
+```
+
+### Using Standard Input with Eval
+
+```
+run-node-eval({
+  code: `
+    let data = '';
+    process.stdin.on('data', (chunk) => { data += chunk; });
+    process.stdin.on('end', () => { 
+      console.log('Received:', data);
+    });
+  `,
+  stdin: "Data to process"
+});
+```
+
+### Reading a File Then Using It As Standard Input
+
+```
+// First read the file
+const fileContent = read_file({ path: "./data.txt" });
+
+// Then pass it as standard input to a script
+run-node-script({
+  scriptPath: "./process-data.js",
+  stdin: fileContent
+});
+```
+
 
 ## Resources
 

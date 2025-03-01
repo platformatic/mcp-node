@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { exec } from "child_process";
+import { exec, ExecOptions as ChildProcessExecOptions } from "child_process";
 import { promisify } from "util";
 import * as path from "path";
 import * as fs from "fs/promises";
@@ -12,6 +12,11 @@ const execAsync = promisify(exec);
 
 // Variable to store the currently selected Node.js version
 let selectedNodeVersion: string | null = null;
+
+// Define our extended options interface
+interface ExecOptionsWithInput extends ChildProcessExecOptions {
+  input?: string;
+}
 
 // Create an MCP server
 const server = new McpServer({
@@ -224,9 +229,10 @@ server.tool(
   {
     scriptPath: z.string().describe("Path to the Node.js script to execute"),
     nodeArgs: z.array(z.string()).optional().describe("Optional arguments to pass to the Node.js executable itself"),
-    args: z.array(z.string()).optional().describe("Optional arguments to pass to the script")
+    args: z.array(z.string()).optional().describe("Optional arguments to pass to the script"),
+    stdin: z.string().optional().describe("Optional input to provide to the script's standard input")
   },
-  async ({ scriptPath, nodeArgs = [], args = [] }, extra) => {
+  async ({ scriptPath, nodeArgs = [], args = [], stdin }) => {
     try {
       // Resolve the absolute path
       const absPath = path.resolve(scriptPath);
@@ -251,7 +257,7 @@ server.tool(
       const command = `node ${nodeArgsString}${absPath}${argsString}`;
 
       // Ask for permission
-      let permitted;
+      let permitted = false;
       let tries = 0;
 
       while (!permitted) {
@@ -264,16 +270,45 @@ server.tool(
             }]
           };
         }
-        permitted = await askPermission(command);
+        
+        // Include stdin info in permission request if provided
+        let permissionMessage = command;
+        if (stdin !== undefined) {
+          permissionMessage += " with provided standard input";
+        }
+        
+        permitted = await askPermission(permissionMessage);
       }
       
       // Execute the script with the selected Node.js version if one is set
       let execCommand = command;
-      if (selectedNodeVersion) {
-        execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${command}"`;
+      let execOptions: ExecOptionsWithInput = {
+        timeout: 60000 // 1 minute timeout
+      };
+      
+      // If stdin is provided, add it to exec options
+      if (stdin !== undefined) {
+        execOptions.input = stdin;
       }
       
-      const { stdout, stderr } = await execAsync(execCommand);
+      // Handle NVM usage differently if stdin is provided
+      if (selectedNodeVersion) {
+        if (stdin !== undefined) {
+          // For stdin, we need to use a different approach
+          // First get the path to the correct node binary
+          const { stdout: nodePath } = await execAsync(
+            `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which node"`
+          );
+          
+          // Now use that specific node binary path directly
+          execCommand = `${nodePath.trim()} ${nodeArgsString}${absPath}${argsString}`;
+        } else {
+          // Without stdin, use the bash -c approach
+          execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${command}"`;
+        }
+      }
+      
+      const { stdout, stderr } = await execAsync(execCommand, execOptions);
       
       return {
         content: [
@@ -288,13 +323,24 @@ server.tool(
         ]
       };
     } catch (error) {
+      // Extract stdout and stderr from the error
+      const execError = error as any;
+      const stdout = execError.stdout || '';
+      const stderr = execError.stderr || '';
       const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Return a successful response but include both stdout, stderr and error information
       return {
-        isError: true,
-        content: [{ 
-          type: "text" as const, 
-          text: `Error executing script: ${errorMessage}` 
-        }]
+        content: [
+          { 
+            type: "text" as const, 
+            text: stdout || "Script execution returned with error code" 
+          },
+          { 
+            type: "text" as const, 
+            text: `Standard Error: ${stderr}\nError: ${errorMessage}` 
+          }
+        ]
       };
     }
   }
@@ -307,9 +353,10 @@ server.tool(
   {
     packageDir: z.string().describe("Directory containing package.json"),
     scriptName: z.string().describe("Name of the script to run"),
-    args: z.array(z.string()).optional().describe("Optional arguments to pass to the script")
+    args: z.array(z.string()).optional().describe("Optional arguments to pass to the script"),
+    stdin: z.string().optional().describe("Optional input to provide to the script's standard input")
   },
-  async ({ packageDir, scriptName, args = [] }, extra) => {
+  async ({ packageDir, scriptName, args = [], stdin }) => {
     try {
       // Resolve the absolute path
       const absPath = path.resolve(packageDir);
@@ -346,8 +393,13 @@ server.tool(
       const argsString = args.length > 0 ? ` -- ${args.join(' ')}` : '';
       const command = `npm run ${scriptName}${argsString}`;
       
-      // Ask for permission
-      const permitted = await askPermission(`${command} (in ${absPath})`);
+      // Ask for permission - include stdin info if provided
+      let permissionMessage = `${command} (in ${absPath})`;
+      if (stdin !== undefined) {
+        permissionMessage += ` with provided standard input`;
+      }
+      
+      const permitted = await askPermission(permissionMessage);
       
       if (!permitted) {
         return {
@@ -361,11 +413,37 @@ server.tool(
       
       // Execute the npm script with the selected Node.js version if one is set
       let execCommand = command;
-      if (selectedNodeVersion) {
-        execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${command}"`;
+      let execOptions: ExecOptionsWithInput = { 
+        cwd: absPath,
+        timeout: 60000 // 1 minute timeout
+      };
+      
+      // If stdin is provided, add it to exec options
+      if (stdin !== undefined) {
+        execOptions.input = stdin;
       }
       
-      const { stdout, stderr } = await execAsync(execCommand, { cwd: absPath });
+      // Handle NVM usage differently if stdin is provided
+      if (selectedNodeVersion) {
+        if (stdin !== undefined) {
+          // For stdin, we need to use a different approach
+          // First get the path to the correct node binary and npm
+          const { stdout: nodePath } = await execAsync(
+            `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which node"`
+          );
+          const { stdout: npmPath } = await execAsync(
+            `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which npm"`
+          );
+          
+          // Now use npm directly with the full path
+          execCommand = `${npmPath.trim()} run ${scriptName}${argsString}`;
+        } else {
+          // Without stdin, use the bash -c approach
+          execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${command}"`;
+        }
+      }
+      
+      const { stdout, stderr } = await execAsync(execCommand, execOptions);
 
       return {
         content: [
@@ -410,8 +488,9 @@ server.tool(
   {
     code: z.string().describe("JavaScript code to execute"),
     evalDirectory: z.string().optional().describe("Directory to execute the code in (must be an allowed directory)"),
+    stdin: z.string().optional().describe("Optional input to provide to the script's standard input")
   },
-  async ({ code, evalDirectory }, extra) => {
+  async ({ code, evalDirectory, stdin }) => {
     try {
       // Determine execution directory - use os.tmpdir() for the default
       const tmpDir = os.tmpdir();
@@ -497,7 +576,10 @@ server.tool(
       const displayCode = code.length > 50 ? code.substring(0, 47) + "..." : code;
       
       // Ask for permission - include the execution directory in the message
-      const permissionMessage = `node --eval "${displayCode}" (in ${executionDir})`;
+      let permissionMessage = `node --eval "${displayCode}" (in ${executionDir})`;
+      if (stdin !== undefined) {
+        permissionMessage += ` with provided standard input`;
+      }
       
       const permitted = await askPermission(permissionMessage);
       
@@ -520,7 +602,16 @@ server.tool(
         execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${execCommand}"`;
       }
       
-      const { stdout, stderr } = await execAsync(execCommand, { cwd: executionDir });
+      // Setup options with stdin if provided
+      const execOptions: ExecOptionsWithInput = { 
+        cwd: executionDir,
+        timeout: 5000 // 5 second timeout
+      };
+      if (stdin !== undefined) {
+        execOptions.input = stdin;
+      }
+      
+      const { stdout, stderr } = await execAsync(execCommand, execOptions);
       
       return {
         content: [
