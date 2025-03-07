@@ -230,9 +230,10 @@ server.tool(
     scriptPath: z.string().describe("Path to the Node.js script to execute"),
     nodeArgs: z.array(z.string()).optional().describe("Optional arguments to pass to the Node.js executable itself"),
     args: z.array(z.string()).optional().describe("Optional arguments to pass to the script"),
-    stdin: z.string().optional().describe("Optional input to provide to the script's standard input")
+    stdin: z.string().optional().describe("Optional input to provide to the script's standard input"),
+    cwd: z.string().optional().describe("Directory to run the script in (current working directory)")
   },
-  async ({ scriptPath, nodeArgs = [], args = [], stdin }) => {
+  async ({ scriptPath, nodeArgs = [], args = [], stdin, cwd }) => {
     try {
       // Resolve the absolute path
       const absPath = path.resolve(scriptPath);
@@ -255,6 +256,9 @@ server.tool(
       const nodeArgsString = nodeArgs.length > 0 ? nodeArgs.join(' ') + ' ' : '';
       const argsString = args.length > 0 ? ' ' + args.join(' ') : '';
       const command = `node ${nodeArgsString}${absPath}${argsString}`;
+      
+      // Get working directory for permission message
+      const workingDir = cwd ? path.resolve(cwd) : os.tmpdir();
 
       // Ask for permission
       let permitted = false;
@@ -271,8 +275,8 @@ server.tool(
           };
         }
         
-        // Include stdin info in permission request if provided
-        let permissionMessage = command;
+        // Include stdin and working directory info in permission request
+        let permissionMessage = `${command} (in ${workingDir})`;
         if (stdin !== undefined) {
           permissionMessage += " with provided standard input";
         }
@@ -283,7 +287,8 @@ server.tool(
       // Execute the script with the selected Node.js version if one is set
       let execCommand = command;
       let execOptions: ExecOptionsWithInput = {
-        timeout: 60000 // 1 minute timeout
+        timeout: 60000, // 1 minute timeout
+        cwd: cwd ? path.resolve(cwd) : os.tmpdir()
       };
       
       // If stdin is provided, add it to exec options

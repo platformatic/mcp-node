@@ -68,8 +68,18 @@ Parameters:
 - `nodeArgs`: (Optional) Arguments to pass to the Node.js executable itself
 - `args`: (Optional) Array of arguments to pass to the script
 - `stdin`: (Optional) Text to provide as standard input to the script
+- `cwd`: (Optional) Directory to run the script in (defaults to OS temp directory if not specified)
 
 Example prompt: "Run the test.js script with arguments 'hello' and 'world'"
+
+Example with working directory:
+```javascript
+run-node-script({
+  scriptPath: "/absolute/path/to/my-script.js",
+  args: ["arg1", "arg2"],
+  cwd: "/absolute/path/to/project"
+});
+```
 
 ### run-npm-script
 
@@ -107,12 +117,13 @@ process.stdin.on('data', (data) => {
 });
 ```
 
-You can execute this with standard input:
+You can execute this with standard input and a specific working directory:
 
 ```
 run-node-script({
-  scriptPath: "./process-data.js",
-  stdin: "This is input data"
+  scriptPath: "/absolute/path/to/process-data.js",
+  stdin: "This is input data",
+  cwd: "/absolute/path/to/my-project-directory"  // Sets the working directory for the script
 });
 ```
 
@@ -135,12 +146,13 @@ run-node-eval({
 
 ```
 // First read the file
-const fileContent = read_file({ path: "./data.txt" });
+const fileContent = read_file({ path: "/absolute/path/to/data.txt" });
 
 // Then pass it as standard input to a script
 run-node-script({
-  scriptPath: "./process-data.js",
-  stdin: fileContent
+  scriptPath: "/absolute/path/to/process-data.js",
+  stdin: fileContent,
+  cwd: "/absolute/path/to/working-directory"
 });
 ```
 
