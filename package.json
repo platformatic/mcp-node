@@ -8,7 +8,8 @@
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js"
+    "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js",
+    "test": "node --test test/"
   },
   "repository": {
     "type": "git",
