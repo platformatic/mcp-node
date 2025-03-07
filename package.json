@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
     "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js",
     "test-error": "node test-error.js"
   },
@@ -27,6 +29,8 @@
   "devDependencies": {
     "@types/node": "^22.13.5",
     "@types/node-notifier": "^8.0.5",
+    "eslint": "^9.21.0",
+    "neostandard": "^0.12.1",
     "typescript": "^5.7.3"
   },
   "keywords": [
