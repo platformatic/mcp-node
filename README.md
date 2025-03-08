@@ -43,7 +43,7 @@ An MCP server that allows you to run Node.js scripts and npm commands, with perm
   "mcpServers": {
     "node-runner": {
       "command": "npx",
-      "args": ["-y", "mcp-node"],
+      "args": ["-y", "mcp-node@latest"],
       "env": {
         "DISABLE_NOTIFICATIONS": "true",  // Optional: disable permission prompts
         "EVAL_DIRECTORIES": "/path/to/safe/dir1:/path/to/safe/dir2"  // Optional: additional allowed eval directories
