@@ -227,8 +227,8 @@ server.tool(
   "run-node-script",
   "Execute a Node.js script file locally",
   {
-    scriptPath: z.string().describe("Path to the Node.js script to execute"),
-    nodeArgs: z.array(z.string()).optional().describe("Optional arguments to pass to the Node.js executable itself"),
+    scriptPath: z.string().describe("Path to the Node.js script to execute, this should be present on disk"),
+    nodeArgs: z.array(z.string()).optional().describe("Optional arguments to pass to the Node.js executable itselfm, like --test"),
     args: z.array(z.string()).optional().describe("Optional arguments to pass to the script"),
     stdin: z.string().optional().describe("Optional input to provide to the script's standard input"),
     cwd: z.string().optional().describe("Directory to run the script in (current working directory)")
