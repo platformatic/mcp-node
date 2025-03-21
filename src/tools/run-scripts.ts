@@ -230,7 +230,7 @@ export function registerScriptTools(server: McpServer): void {
         const displayCode = code.length > 50 ? code.substring(0, 47) + "..." : code;
         
         // Ask for permission - include the execution directory in the message
-        let permissionMessage = `node --eval "${displayCode}" (in ${executionDir})`;
+        let permissionMessage = `Execute JavaScript code (in ${executionDir})`;
         if (stdin !== undefined) {
           permissionMessage += ` with provided standard input`;
         }
@@ -247,38 +247,53 @@ export function registerScriptTools(server: McpServer): void {
           };
         }
         
-        // Execute the code directly using --eval with the selected Node.js version if one is set
-        // Escaping the code properly for the shell command
-        const escapedCode = code.replace(/"/g, '\\"');
-        let execCommand = `node --eval "${escapedCode}"`;
+        // Create a temporary file for the code instead of using --eval directly
+        // This approach handles multiline code and special characters better
+        const timestamp = Date.now();
+        const tempFilePath = path.join(tmpDir, `node-eval-${timestamp}.js`);
         
-        if (selectedNodeVersion) {
-          execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${execCommand}"`;
+        try {
+          // Write the code to the temporary file
+          await fs.writeFile(tempFilePath, code, 'utf8');
+          
+          // Build the command to execute the temp file
+          let execCommand = `node "${tempFilePath}"`;
+          
+          if (selectedNodeVersion) {
+            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${execCommand}"`;
+          }
+          
+          // Setup options with stdin if provided
+          const execOptions: ExecOptionsWithInput = { 
+            cwd: executionDir,
+            timeout: 5000 // 5 second timeout
+          };
+          if (stdin !== undefined) {
+            execOptions.input = stdin;
+          }
+          
+          const { stdout, stderr } = await execAsync(execCommand, execOptions);
+          
+          return {
+            content: [
+              { 
+                type: "text" as const, 
+                text: stdout || "Code executed successfully with no output" 
+              },
+              ...(stderr ? [{ 
+                type: "text" as const, 
+                text: `Standard Error: ${stderr}` 
+              }] : [])
+            ]
+          };
+        } finally {
+          // Clean up the temporary file
+          try {
+            await fs.unlink(tempFilePath);
+          } catch (err) {
+            console.error(`Failed to clean up temporary file ${tempFilePath}:`, err);
+          }
         }
-        
-        // Setup options with stdin if provided
-        const execOptions: ExecOptionsWithInput = { 
-          cwd: executionDir,
-          timeout: 5000 // 5 second timeout
-        };
-        if (stdin !== undefined) {
-          execOptions.input = stdin;
-        }
-        
-        const { stdout, stderr } = await execAsync(execCommand, execOptions);
-        
-        return {
-          content: [
-            { 
-              type: "text" as const, 
-              text: stdout || "Code executed successfully with no output" 
-            },
-            ...(stderr ? [{ 
-              type: "text" as const, 
-              text: `Standard Error: ${stderr}` 
-            }] : [])
-          ]
-        };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         return {
