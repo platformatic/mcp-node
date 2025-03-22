@@ -3,7 +3,7 @@ import { z } from "zod";
 import * as path from "path";
 import * as fs from "fs/promises";
 import * as os from "node:os";
-import { execAsync, askPermission, selectedNodeVersion } from "../utils/helpers.js";
+import { execAsync, askPermission, getSelectedNodeVersion } from "../utils/helpers.js";
 import { ExecOptionsWithInput } from "../types/index.js";
 
 export function registerScriptTools(server: McpServer): void {
@@ -81,19 +81,20 @@ export function registerScriptTools(server: McpServer): void {
         }
         
         // Handle NVM usage differently if stdin is provided
-        if (selectedNodeVersion) {
+        const selectedVersion = getSelectedNodeVersion();
+        if (selectedVersion) {
           if (stdin !== undefined) {
             // For stdin, we need to use a different approach
             // First get the path to the correct node binary
             const { stdout: nodePath } = await execAsync(
-              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which node"`
+              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && which node"`
             );
             
             // Now use that specific node binary path directly
             execCommand = `${nodePath.trim()} ${nodeArgsString}${absPath}${argsString}`;
           } else {
             // Without stdin, use the bash -c approach
-            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${command}"`;
+            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} && ${command}"`;
           }
         }
         
@@ -259,8 +260,9 @@ export function registerScriptTools(server: McpServer): void {
           // Build the command to execute the temp file
           let execCommand = `node "${tempFilePath}"`;
           
-          if (selectedNodeVersion) {
-            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${execCommand}"`;
+          const selectedVersion = getSelectedNodeVersion();
+          if (selectedVersion) {
+            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} && ${execCommand}"`;
           }
           
           // Setup options with stdin if provided

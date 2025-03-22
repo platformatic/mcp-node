@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import * as os from "node:os";
-import { execAsync, selectedNodeVersion } from "../utils/helpers.js";
+import { execAsync, getSelectedNodeVersion, setSelectedNodeVersion } from "../utils/helpers.js";
 
 export function registerNodeVersionTools(server: McpServer): void {
   // Tool to list available Node.js versions via NVM
@@ -44,8 +44,9 @@ export function registerNodeVersionTools(server: McpServer): void {
         const activeVersionText = activeVersion ? `Currently active: ${activeVersion.version}` : 'No active version detected';
         
         // Check if we have a manually selected version
-        const selectedVersionText = selectedNodeVersion ? 
-          `Selected for MCP: ${selectedNodeVersion}` : 
+        const selectedVersion = getSelectedNodeVersion();
+        const selectedVersionText = selectedVersion ? 
+          `Selected for MCP: ${selectedVersion}` : 
           'No specific version selected for MCP (using system default)';
         
         return {
@@ -89,10 +90,8 @@ export function registerNodeVersionTools(server: McpServer): void {
           };
         }
         
-        // Store the selected version in the module-level variable
-        // This is shared between modules through the utils/helpers.js import
-        // eslint-disable-next-line import/no-mutable-exports
-        Object.assign(exports, { selectedNodeVersion: version });
+        // Store the selected version using the setter function
+        setSelectedNodeVersion(version);
         
         return {
           content: [{ 
@@ -126,10 +125,11 @@ export function registerNodeVersionTools(server: McpServer): void {
         let nodePathCommand = 'which node';
         
         // If we have a selected Node version, use it via nvm
-        if (selectedNodeVersion) {
-          versionCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && node --version"`;
-          npmVersionCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && npm --version"`;
-          nodePathCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which node"`;
+        const selectedVersion = getSelectedNodeVersion();
+        if (selectedVersion) {
+          versionCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && node --version"`;
+          npmVersionCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && npm --version"`;
+          nodePathCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && which node"`;
         }
         
         // Get Node.js version info
@@ -149,8 +149,8 @@ export function registerNodeVersionTools(server: McpServer): void {
         const arch = os.arch();
         
         // Add info about whether we're using a selected version
-        const selectionInfo = selectedNodeVersion 
-          ? `\nSelected via MCP: ${selectedNodeVersion}` 
+        const selectionInfo = selectedVersion 
+          ? `\nSelected via MCP: ${selectedVersion}` 
           : '\nUsing system default Node.js version';
         
         return {

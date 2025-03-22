@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import * as path from "path";
 import * as fs from "fs/promises";
-import { execAsync, askPermission, selectedNodeVersion } from "../utils/helpers.js";
+import { execAsync, askPermission, getSelectedNodeVersion } from "../utils/helpers.js";
 import { ExecOptionsWithInput } from "../types/index.js";
 
 export function registerNpmTools(server: McpServer): void {
@@ -84,22 +84,23 @@ export function registerNpmTools(server: McpServer): void {
         }
         
         // Handle NVM usage differently if stdin is provided
-        if (selectedNodeVersion) {
+        const selectedVersion = getSelectedNodeVersion();
+        if (selectedVersion) {
           if (stdin !== undefined) {
             // For stdin, we need to use a different approach
             // First get the path to the correct node binary and npm
             const { stdout: nodePath } = await execAsync(
-              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which node"`
+              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && which node"`
             );
             const { stdout: npmPath } = await execAsync(
-              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which npm"`
+              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && which npm"`
             );
             
             // Now use npm directly with the full path
             execCommand = `${npmPath.trim()} run ${scriptName}${argsString}`;
           } else {
             // Without stdin, use the bash -c approach
-            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} && ${command}"`;
+            execCommand = `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} && ${command}"`;
           }
         }
         
@@ -193,10 +194,11 @@ export function registerNpmTools(server: McpServer): void {
         };
         
         // Handle NVM usage
-        if (selectedNodeVersion) {
+        const selectedVersion = getSelectedNodeVersion();
+        if (selectedVersion) {
           // Get the path to npm from the selected Node version
           const { stdout: npmPath } = await execAsync(
-            `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which npm"`
+            `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && which npm"`
           );
           
           // Use npm directly with the full path

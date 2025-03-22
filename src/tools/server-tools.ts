@@ -3,7 +3,7 @@ import { z } from "zod";
 import * as path from "path";
 import * as fs from "fs/promises";
 import { spawn } from "child_process";
-import { execAsync, askPermission, runningServers, generateServerId, selectedNodeVersion } from "../utils/helpers.js";
+import { execAsync, askPermission, runningServers, generateServerId, getSelectedNodeVersion } from "../utils/helpers.js";
 
 export function registerServerTools(server: McpServer): void {
   // Tool to start a Node.js server in the background
@@ -68,11 +68,12 @@ export function registerServerTools(server: McpServer): void {
         
         // If we have a selected Node.js version, get its bin path for running the server
         let nodeBin = 'node';
-        if (selectedNodeVersion) {
+        const selectedVersion = getSelectedNodeVersion();
+        if (selectedVersion) {
           try {
             // Get the path to the selected Node.js binary
             const { stdout } = await execAsync(
-              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedNodeVersion} > /dev/null && which node"`
+              `bash -c "source ~/.nvm/nvm.sh && nvm use ${selectedVersion} > /dev/null && which node"`
             );
             nodeBin = stdout.trim();
           } catch (error) {

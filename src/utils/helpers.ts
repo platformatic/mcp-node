@@ -9,8 +9,18 @@ export const execAsync = promisify(exec);
 // Map to store running servers
 export const runningServers = new Map<string, ServerInfo>();
 
-// Variable to store the currently selected Node.js version
-export let selectedNodeVersion: string | null = null;
+// Variable to store the currently selected Node.js version (private)
+let _selectedNodeVersion: string | null = null;
+
+// Function to get the currently selected Node.js version
+export function getSelectedNodeVersion(): string | null {
+  return _selectedNodeVersion;
+}
+
+// Function to set the selected Node.js version
+export function setSelectedNodeVersion(version: string | null): void {
+  _selectedNodeVersion = version;
+}
 
 // Generate a unique ID for servers
 export function generateServerId(): string {
