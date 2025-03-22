@@ -171,6 +171,7 @@ Parameters:
 - `args`: (Optional) Array of arguments to pass to the script
 - `stdin`: (Optional) Text to provide as standard input to the script
 - `cwd`: (Optional) Directory to run the script in (defaults to OS temp directory if not specified)
+- `timeout`: (Optional) Timeout in milliseconds after which the process is killed (defaults to 60000ms)
 
 Example prompt: "Run the test.js script with arguments 'hello' and 'world'"
 
@@ -180,6 +181,14 @@ run-node-script({
   scriptPath: "/absolute/path/to/my-script.js",
   args: ["arg1", "arg2"],
   cwd: "/absolute/path/to/project"
+});
+```
+
+Example with timeout:
+```javascript
+run-node-script({
+  scriptPath: "/absolute/path/to/long-running-script.js",
+  timeout: 10000  // Kill after 10 seconds
 });
 ```
 
@@ -203,8 +212,23 @@ Parameters:
 - `code`: JavaScript code to execute
 - `evalDirectory`: (Optional) Directory to execute the code in
 - `stdin`: (Optional) Text to provide as standard input to the code
+- `timeout`: (Optional) Timeout in milliseconds after which the process is killed (defaults to 5000ms)
 
 Example prompt: "Run this JavaScript code: console.log('Hello world');"
+
+Example with timeout:
+```javascript
+run-node-eval({
+  code: `
+    // This code would be terminated after 3 seconds
+    console.log('Starting long operation...');
+    setTimeout(() => {
+      console.log('This will never be logged');
+    }, 5000);
+  `,
+  timeout: 3000  // Kill after 3 seconds
+});
+```
 
 ### list-node-versions
 

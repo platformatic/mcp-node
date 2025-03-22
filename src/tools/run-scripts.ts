@@ -16,9 +16,10 @@ export function registerScriptTools(server: McpServer): void {
       nodeArgs: z.array(z.string()).optional().describe("Optional arguments to pass to the Node.js executable itselfm, like --test"),
       args: z.array(z.string()).optional().describe("Optional arguments to pass to the script"),
       stdin: z.string().optional().describe("Optional input to provide to the script's standard input"),
-      cwd: z.string().optional().describe("Directory to run the script in (current working directory)")
+      cwd: z.string().optional().describe("Directory to run the script in (current working directory)"),
+      timeout: z.number().optional().describe("Timeout in milliseconds after which the process is killed")
     },
-    async ({ scriptPath, nodeArgs = [], args = [], stdin, cwd }) => {
+    async ({ scriptPath, nodeArgs = [], args = [], stdin, cwd, timeout }) => {
       try {
         // Resolve the absolute path
         const absPath = path.resolve(scriptPath);
@@ -71,7 +72,7 @@ export function registerScriptTools(server: McpServer): void {
         // Execute the script with the selected Node.js version if one is set
         let execCommand = command;
         let execOptions: ExecOptionsWithInput = {
-          timeout: 60000, // 1 minute timeout
+          timeout: timeout || 60000, // Use provided timeout or default to 1 minute
           cwd: cwd ? path.resolve(cwd) : os.tmpdir()
         };
         
@@ -143,9 +144,10 @@ export function registerScriptTools(server: McpServer): void {
     {
       code: z.string().describe("JavaScript code to execute"),
       evalDirectory: z.string().optional().describe("Directory to execute the code in (must be an allowed directory)"),
-      stdin: z.string().optional().describe("Optional input to provide to the script's standard input")
+      stdin: z.string().optional().describe("Optional input to provide to the script's standard input"),
+      timeout: z.number().optional().describe("Timeout in milliseconds after which the process is killed")
     },
-    async ({ code, evalDirectory, stdin }) => {
+    async ({ code, evalDirectory, stdin, timeout }) => {
       try {
         // Determine execution directory - use os.tmpdir() for the default
         const tmpDir = os.tmpdir();
@@ -268,7 +270,7 @@ export function registerScriptTools(server: McpServer): void {
           // Setup options with stdin if provided
           const execOptions: ExecOptionsWithInput = { 
             cwd: executionDir,
-            timeout: 5000 // 5 second timeout
+            timeout: timeout || 5000 // Use provided timeout or default to 5 seconds
           };
           if (stdin !== undefined) {
             execOptions.input = stdin;
