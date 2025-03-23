@@ -4,6 +4,9 @@
   "description": "A basic Model Context Protocol implementation for Node.js",
   "main": "dist/mcp-node.js",
   "type": "module",
+  "bin": {
+    "mcp-node": "dist/mcp-node.js"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint .",
