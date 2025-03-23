@@ -1,6 +1,6 @@
 {
   "name": "mcp-node",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A basic Model Context Protocol implementation for Node.js",
   "main": "dist/mcp-node.js",
   "type": "module",
