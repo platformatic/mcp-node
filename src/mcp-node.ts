@@ -7,6 +7,7 @@ import { registerNodeVersionTools } from "./tools/node-version.js";
 import { registerScriptTools } from "./tools/run-scripts.js";
 import { registerNpmTools } from "./tools/npm-tools.js";
 import { registerServerTools } from "./tools/server-tools.js";
+import { registerNpmDocsTools } from "./tools/npm-docs.js";
 import { registerNpmScriptsResource } from "./resources/npm-scripts.js";
 
 // Create an MCP server
@@ -20,6 +21,7 @@ registerNodeVersionTools(server);
 registerScriptTools(server);
 registerNpmTools(server);
 registerServerTools(server);
+registerNpmDocsTools(server);
 registerNpmScriptsResource(server);
 
 // Start the server

@@ -19,6 +19,7 @@ An MCP server that allows you to run Node.js scripts and npm commands, with perm
 - Retrieve and filter server logs for debugging and monitoring
 - Select specific Node.js versions using NVM
 - View available npm scripts in package.json files
+- Fetch documentation for npm packages with README and metadata
 - Permission prompts before any execution (can be disabled)
 
 ## Setup
@@ -204,6 +205,24 @@ Parameters:
 
 Example prompt: "Run the 'start' script from the package.json in the current directory"
 
+### run-npm-install
+
+Executes npm install to install all dependencies or a specific package.
+
+Parameters:
+- `packageDir`: Directory containing package.json
+- `dependency`: (Optional) Specific dependency to install (leave empty to install all dependencies from package.json)
+
+Example prompt: "Install express in the current project"
+
+Example usage:
+```javascript
+run-npm-install({
+  packageDir: "/absolute/path/to/project",
+  dependency: "express"
+});
+```
+
 ### run-node-eval
 
 Executes JavaScript code directly.
@@ -227,6 +246,30 @@ run-node-eval({
     }, 5000);
   `,
   timeout: 3000  // Kill after 3 seconds
+});
+```
+
+### fetch-npm-docs
+
+Fetches documentation for an npm module, including README and metadata. Downloads the package, extracts the README, and caches results to avoid redundant downloads.
+
+Parameters:
+- `packageName`: Name of the npm package
+- `version`: (Optional) Specific version to fetch (defaults to latest)
+
+Key features:
+- Retrieves package metadata using `npm view`
+- Downloads and extracts the package tarball to get the README
+- Caches packages both in memory and on disk to avoid redundant downloads
+- Works with the selected Node.js version
+
+Example prompt: "Show me the documentation for the express package"
+
+Example usage:
+```javascript
+fetch-npm-docs({
+  packageName: "express",
+  version: "4.18.2"
 });
 ```
 
