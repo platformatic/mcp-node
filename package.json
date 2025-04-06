@@ -1,6 +1,6 @@
 {
   "name": "mcp-node",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A basic Model Context Protocol implementation for Node.js",
   "main": "dist/mcp-node.js",
   "type": "module",
@@ -50,6 +50,6 @@
     "javascript-runtime"
   ],
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=18.0.0"
   }
 }
