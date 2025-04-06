@@ -1,6 +1,6 @@
 {
   "name": "mcp-node",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A basic Model Context Protocol implementation for Node.js",
   "main": "dist/mcp-node.js",
   "type": "module",
@@ -8,7 +8,7 @@
     "mcp-node": "dist/mcp-node.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/mcp-node.js",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "dev": "npm run build && npx @modelcontextprotocol/inspector node dist/mcp-node.js"
